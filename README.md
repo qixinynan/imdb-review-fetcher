@@ -3,7 +3,7 @@
 ## Step One
 
 ensure you have installed the libraries required:
-`pip3 install requests csv wordcloud textblob re`
+`pip3 install requests wordcloud textblob`
 
 
 
