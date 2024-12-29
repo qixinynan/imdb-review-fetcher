@@ -1,19 +1,45 @@
 import requests
 import csv
+from textblob import TextBlob
+import re
 
 class Review:
-    def __init__(self, movie, title, content, rate, upvotes, downvotes, emotion):
+    def __init__(self, movie, title, content, rate, upvotes, downvotes):
         self.movie = movie
         self.title = title
         self.content = content
         self.rate = rate
         self.upvotes = upvotes
         self.downvotes = downvotes
-        self.emotion = emotion
+        blob = TextBlob(content);
+        self.polarity = blob.polarity
+        self.subjectivity = blob.subjectivity
 
 
 endcur = "";
 reviews = [];
+
+
+def clean_text(raw_text):
+    """
+    Clean text by removing HTML tags, HTML entities, and bracketed content.
+    """
+    # Remove HTML tags
+    no_html_tags = re.sub(r'<.*?>', '', raw_text)
+
+    # Remove HTML entities (e.g., &#39;)
+    no_html_entities = re.sub(r'&[#\w]+;', '', no_html_tags)
+
+    # Remove special numeric entities (e.g., &#39)
+    no_numeric_entities = re.sub(r'&#\d+;', '', no_html_entities)
+
+    # Remove content inside brackets (e.g., (text))
+    no_brackets = re.sub(r'\(.*?\)', '', no_numeric_entities)
+
+    # Remove extra whitespace
+    cleaned_text = " ".join(no_brackets.split())
+
+    return cleaned_text
 
 def get_reviews_data(movie):
     url = (
@@ -60,13 +86,13 @@ def get_part_review(movie):
 
     for item in data["data"]["title"]["reviews"]["edges"]:
         title = item["node"]["summary"]["originalText"]
-        content = item["node"]["text"]["originalText"]["plaidHtml"]
+        content = clean_text(item["node"]["text"]["originalText"]["plaidHtml"])
         rate = item["node"]["authorRating"]
         upvotes = item["node"]["helpfulness"]["upVotes"]
         downvotes = item["node"]["helpfulness"]["downVotes"]
 
         # print(title, content, rate, upvotes, downvotes)
-        reviews.append(Review("", title, content, rate, upvotes, downvotes, ""));
+        reviews.append(Review("", title, content, rate, upvotes, downvotes));
 
 
     if data["data"]["title"]["reviews"]["pageInfo"]["hasNextPage"]:
@@ -78,9 +104,9 @@ def get_part_review(movie):
 def save_to_csv(file_name):
     with open(file_name, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(["Movie", "Title", "Content", "Rate", "Upvotes", "Downvotes", "Emotion"])
+        writer.writerow(["Movie", "Title", "Content", "Rate", "Upvotes", "Downvotes", "Polarity", "Subjectivity"])
         for review in reviews:
-            writer.writerow([review.movie, review.title, review.content, review.rate, review.upvotes, review.downvotes, review.emotion])
+            writer.writerow([review.movie, review.title, review.content, review.rate, review.upvotes, review.downvotes, review.polarity, review.subjectivity  ])
 
 if __name__ == '__main__':
     print("IMDB Review Fetcher\nAuthor: Qixiny<qixinynan@outlook.com>\n")
